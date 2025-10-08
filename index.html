@@ -416,71 +416,7 @@
 
     <script>
         // Backend API URL - CONNECTS TO YOUR ACTUAL BACKEND
-        const API_URL = 'https://ssa-yt-to-mp-4-downloader.vercel.app';
-
-        const formatOptions = document.querySelectorAll('.format-option');
-        const getInfoBtn = document.getElementById('getInfoBtn');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const urlInput = document.querySelector('.url-input');
-        const videoPreview = document.getElementById('videoPreview');
-        const videoThumbnail = document.getElementById('videoThumbnail');
-        const videoTitle = document.getElementById('videoTitle');
-        const videoDuration = document.getElementById('videoDuration');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-
-        let currentVideoInfo = null;
-
-        // Format selection
-        formatOptions.forEach(option => {
-            option.addEventListener('click', () => {
-                formatOptions.forEach(opt => opt.classList.remove('active'));
-                option.classList.add('active');
-            });
-        });
-
-        // Get video info
-        getInfoBtn.addEventListener('click', async () => {
-            const youtubeUrl = urlInput.value.trim();
-            
-            if (!youtubeUrl) {
-                alert('Please enter a YouTube URL');
-                return;
-            }
-
-            loadingSpinner.style.display = 'block';
-            getInfoBtn.disabled = true;
-            
-            try {
-                const response = await fetch(`${API_URL}/api/video-info`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ url: youtubeUrl })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    currentVideoInfo = data;
-                    videoThumbnail.src = data.thumbnail;
-                    videoTitle.textContent = data.title;
-                    videoDuration.textContent = `Duration: ${data.duration}`;
-                    videoPreview.classList.add('active');
-                    downloadBtn.style.display = 'flex';
-                } else {
-                    alert(data.error || 'Failed to get video info');
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            } finally {
-                loadingSpinner.style.display = 'none';
-                getInfoBtn.disabled = false;
-            }
-        });
-
-        // Download video
-        downloadBtn.addEventListener('click', async () => {
+                downloadBtn.addEventListener('click', async () => {
             if (!currentVideoInfo) return;
 
             const selectedFormat = document.querySelector('.format-option.active').dataset.format;
@@ -526,5 +462,146 @@
             }
         });
     </script>
-</body>
-    </html>
+<script>
+    // Backend API URL
+    const API_URL = 'https://ssa-yt-to-mp-4-downloader.vercel.app';
+
+    const formatOptions = document.querySelectorAll('.format-option');
+    const getInfoBtn = document.getElementById('getInfoBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const urlInput = document.querySelector('.url-input');
+    const videoPreview = document.getElementById('videoPreview');
+    const videoThumbnail = document.getElementById('videoThumbnail');
+    const videoTitle = document.getElementById('videoTitle');
+    const videoDuration = document.getElementById('videoDuration');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    let currentVideoInfo = null;
+
+    // Format selection
+    formatOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            formatOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+        });
+    });
+
+    // Get video info
+    getInfoBtn.addEventListener('click', async () => {
+        const youtubeUrl = urlInput.value.trim();
+        
+        if (!youtubeUrl) {
+            alert('Please enter a YouTube URL');
+            return;
+        }
+
+        // Basic YouTube URL validation
+        if (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
+            alert('Please enter a valid YouTube URL');
+            return;
+        }
+
+        loadingSpinner.style.display = 'block';
+        getInfoBtn.disabled = true;
+        getInfoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+        
+        try {
+            const response = await fetch(`${API_URL}/api/video-info`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url: youtubeUrl })
+            });
+
+            // Check if response is OK
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (data.success) {
+                currentVideoInfo = data;
+                videoThumbnail.src = data.thumbnail;
+                videoTitle.textContent = data.title;
+                videoDuration.textContent = `Duration: ${data.duration}`;
+                videoPreview.classList.add('active');
+                downloadBtn.style.display = 'flex';
+            } else {
+                alert(data.error || 'Failed to get video info');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error: ' + error.message + '\n\nPlease check if the backend is running.');
+        } finally {
+            loadingSpinner.style.display = 'none';
+            getInfoBtn.disabled = false;
+            getInfoBtn.innerHTML = '<i class="fas fa-search"></i> Get Video';
+        }
+    });
+
+    // Download video
+    downloadBtn.addEventListener('click', async () => {
+        if (!currentVideoInfo) return;
+
+        const selectedFormat = document.querySelector('.format-option.active').dataset.format;
+        const youtubeUrl = urlInput.value.trim();
+
+        loadingSpinner.style.display = 'block';
+        downloadBtn.disabled = true;
+        downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+
+        try {
+            const response = await fetch(`${API_URL}/api/download`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    url: youtubeUrl, 
+                    format: selectedFormat 
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Download failed');
+            }
+
+            // Get the blob and download
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `${currentVideoInfo.title}.${selectedFormat === 'mp3' ? 'mp3' : 'mp4'}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+            
+            alert('Download completed successfully!');
+        } catch (error) {
+            console.error('Download error:', error);
+            alert('Download failed: ' + error.message);
+        } finally {
+            loadingSpinner.style.display = 'none';
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Now';
+        }
+    });
+
+    // Test backend connection on page load
+    window.addEventListener('load', async () => {
+        try {
+            const response = await fetch(`${API_URL}/api/health`);
+            if (response.ok) {
+                console.log('Backend is connected!');
+            } else {
+                console.warn('Backend health check failed');
+            }
+        } catch (error) {
+            console.error('Backend connection failed:', error);
+        }
+    });
+
