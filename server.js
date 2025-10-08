@@ -56,10 +56,12 @@ app.post('/api/video-info', async (req, res) => {
     }
 });
 
-// Download endpoint
+// Download endpoint - SIMPLIFIED VERSION
 app.post('/api/download', async (req, res) => {
     try {
         const { url, format } = req.body;
+        
+        console.log('Download request received:', { url, format });
         
         if (!url || !format) {
             return res.status(400).json({ error: 'URL and format are required' });
@@ -72,38 +74,26 @@ app.post('/api/download', async (req, res) => {
         const info = await ytdl.getInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
         
-        let filename, options;
+        console.log('Downloading:', title);
 
         if (format === 'mp3') {
-            filename = `${title}.mp3`;
-            options = { 
+            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
+            res.setHeader('Content-Type', 'audio/mpeg');
+            ytdl(url, { 
                 filter: 'audioonly',
                 quality: 'highestaudio'
-            };
-            
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Type', 'audio/mpeg');
-            
+            }).pipe(res);
         } else {
-            filename = `${title}.mp4`;
-            
-            if (format === '720p') {
-                options = { quality: '136' };
-            } else if (format === '1080p') {
-                options = { quality: '137' };
-            } else {
-                options = { quality: 'highest' };
-            }
-            
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
             res.setHeader('Content-Type', 'video/mp4');
+            ytdl(url, { 
+                quality: 'highest'
+            }).pipe(res);
         }
-
-        ytdl(url, options).pipe(res);
 
     } catch (error) {
         console.error('Download error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        res.status(500).json({ error: 'Download failed: ' + error.message });
     }
 });
 
@@ -125,3 +115,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🚀 SSA YT DOWNLOADER running on port ${PORT}`);
 });
+
