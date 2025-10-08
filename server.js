@@ -1,32 +1,39 @@
 const express = require('express');
 const cors = require('cors');
 const ytdl = require('ytdl-core');
-const path = require('path');
-const fs = require('fs');
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Store temporary downloads (in production use cloud storage)
-const downloads = new Map();
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        message: 'SSA YT DOWNLOADER API is running',
+        timestamp: new Date().toISOString()
+    });
+});
 
 // Get video information
 app.post('/api/video-info', async (req, res) => {
     try {
         const { url } = req.body;
         
+        console.log('Received URL:', url);
+        
         if (!url) {
             return res.status(400).json({ error: 'URL is required' });
         }
 
+        // Validate YouTube URL
         if (!ytdl.validateURL(url)) {
             return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
 
+        // Get video info
         const info = await ytdl.getInfo(url);
         const videoDetails = info.videoDetails;
 
@@ -34,23 +41,23 @@ app.post('/api/video-info', async (req, res) => {
             success: true,
             title: videoDetails.title,
             thumbnail: videoDetails.thumbnails[videoDetails.thumbnails.length - 1].url,
-            duration: formatDuration(videoDetails.lengthSeconds),
-            quality: ['144p', '360p', '480p', '720p', '1080p'].filter(quality => 
-                info.formats.some(format => format.qualityLabel === quality)
-            )
+            duration: formatDuration(parseInt(videoDetails.lengthSeconds)),
+            qualities: ['144p', '360p', '480p', '720p', '1080p']
         });
 
     } catch (error) {
         console.error('Video info error:', error);
-        res.status(500).json({ error: 'Failed to get video information' });
+        res.status(500).json({ error: 'Failed to get video information: ' + error.message });
     }
 });
 
-// Download video
-app.get('/api/download', async (req, res) => {
+// Simple download endpoint
+app.post('/api/download', async (req, res) => {
     try {
-        const { url, format, quality } = req.query;
-
+        const { url, format } = req.body;
+        
+        console.log('Download request:', { url, format });
+        
         if (!url || !format) {
             return res.status(400).json({ error: 'URL and format are required' });
         }
@@ -62,118 +69,40 @@ app.get('/api/download', async (req, res) => {
         const info = await ytdl.getInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
         
-        let filename, contentType, videoFormat;
+        let filename, options;
 
         if (format === 'mp3') {
-            // Audio download
             filename = `${title}.mp3`;
-            contentType = 'audio/mpeg';
-            videoFormat = ytdl.chooseFormat(info.formats, { 
-                quality: 'highestaudio',
-                filter: 'audioonly'
-            });
-        } else {
-            // Video download
-            filename = `${title}.mp4`;
-            contentType = 'video/mp4';
+            options = { 
+                filter: 'audioonly',
+                quality: 'highestaudio'
+            };
             
-            if (quality === '1080p') {
-                videoFormat = ytdl.chooseFormat(info.formats, { 
-                    quality: '137' // 1080p
-                });
-            } else if (quality === '720p') {
-                videoFormat = ytdl.chooseFormat(info.formats, { 
-                    quality: '136' // 720p
-                });
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'audio/mpeg');
+            
+        } else {
+            filename = `${title}.mp4`;
+            
+            if (format === '720p') {
+                options = { quality: '136' };
+            } else if (format === '1080p') {
+                options = { quality: '137' };
             } else {
-                videoFormat = ytdl.chooseFormat(info.formats, { 
-                    quality: 'highest'
-                });
+                options = { quality: 'highest' };
             }
+            
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'video/mp4');
         }
-
-        if (!videoFormat) {
-            return res.status(400).json({ error: 'Requested format not available' });
-        }
-
-        res.header({
-            'Content-Disposition': `attachment; filename="${filename}"`,
-            'Content-Type': contentType
-        });
 
         // Stream the video
-        ytdl(url, { format: videoFormat })
-            .pipe(res)
-            .on('error', (error) => {
-                console.error('Download error:', error);
-                res.status(500).json({ error: 'Download failed' });
-            });
+        ytdl(url, options).pipe(res);
 
     } catch (error) {
         console.error('Download error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        res.status(500).json({ error: 'Download failed: ' + error.message });
     }
-});
-
-// Quick download endpoint (simplified)
-app.post('/api/quick-download', async (req, res) => {
-    try {
-        const { url, format } = req.body;
-        
-        if (!url) {
-            return res.status(400).json({ error: 'YouTube URL is required' });
-        }
-
-        if (!ytdl.validateURL(url)) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-        
-        let filename, contentType;
-
-        if (format === 'mp3') {
-            filename = `${title}.mp3`;
-            contentType = 'audio/mpeg';
-            
-            res.header({
-                'Content-Disposition': `attachment; filename="${filename}"`,
-                'Content-Type': contentType
-            });
-
-            ytdl(url, { 
-                filter: 'audioonly',
-                quality: 'highestaudio'
-            }).pipe(res);
-
-        } else {
-            filename = `${title}.mp4`;
-            contentType = 'video/mp4';
-            
-            res.header({
-                'Content-Disposition': `attachment; filename="${filename}"`,
-                'Content-Type': contentType
-            });
-
-            ytdl(url, { 
-                quality: 'highest'
-            }).pipe(res);
-        }
-
-    } catch (error) {
-        console.error('Quick download error:', error);
-        res.status(500).json({ error: 'Download failed. Please try again.' });
-    }
-});
-
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
-        message: 'SSA YT DOWNLOADER API is running',
-        timestamp: new Date().toISOString()
-    });
 });
 
 // Helper function to format duration
@@ -189,7 +118,7 @@ function formatDuration(seconds) {
     }
 }
 
-// Error handling middleware
+// Error handling
 app.use((error, req, res, next) => {
     console.error('Server error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -204,9 +133,4 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
     console.log(`🚀 SSA YT DOWNLOADER Backend running on port ${PORT}`);
-    console.log(`📝 API Endpoints:`);
-    console.log(`   POST /api/video-info - Get video information`);
-    console.log(`   GET  /api/download - Download video/audio`);
-    console.log(`   POST /api/quick-download - Quick download`);
-    console.log(`   GET  /api/health - Health check`);
 });
