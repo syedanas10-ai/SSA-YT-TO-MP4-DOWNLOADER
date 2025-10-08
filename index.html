@@ -462,7 +462,7 @@
             }
         });
     </script>
-<script>
+    <script>
     // Backend API URL
     const API_URL = 'https://ssa-yt-to-mp-4-downloader.vercel.app';
 
@@ -495,17 +495,14 @@
             return;
         }
 
-        // Basic YouTube URL validation
-        if (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
-            alert('Please enter a valid YouTube URL');
-            return;
-        }
-
+        // Show loading
         loadingSpinner.style.display = 'block';
         getInfoBtn.disabled = true;
         getInfoBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-        
+
         try {
+            console.log('Sending request to backend...');
+            
             const response = await fetch(`${API_URL}/api/video-info`, {
                 method: 'POST',
                 headers: {
@@ -514,12 +511,15 @@
                 body: JSON.stringify({ url: youtubeUrl })
             });
 
-            // Check if response is OK
+            console.log('Response status:', response.status);
+
             if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
+            console.log('Received data:', data);
             
             if (data.success) {
                 currentVideoInfo = data;
@@ -528,12 +528,14 @@
                 videoDuration.textContent = `Duration: ${data.duration}`;
                 videoPreview.classList.add('active');
                 downloadBtn.style.display = 'flex';
+                
+                alert('✅ Video info loaded successfully! Click "Download Now" to download.');
             } else {
-                alert(data.error || 'Failed to get video info');
+                alert('❌ ' + (data.error || 'Failed to get video info'));
             }
         } catch (error) {
-            console.error('Error:', error);
-            alert('Error: ' + error.message + '\n\nPlease check if the backend is running.');
+            console.error('Error details:', error);
+            alert('❌ Error: ' + error.message + '\n\nTry a different YouTube URL.');
         } finally {
             loadingSpinner.style.display = 'none';
             getInfoBtn.disabled = false;
@@ -543,7 +545,10 @@
 
     // Download video
     downloadBtn.addEventListener('click', async () => {
-        if (!currentVideoInfo) return;
+        if (!currentVideoInfo) {
+            alert('Please get video info first');
+            return;
+        }
 
         const selectedFormat = document.querySelector('.format-option.active').dataset.format;
         const youtubeUrl = urlInput.value.trim();
@@ -553,6 +558,8 @@
         downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
 
         try {
+            console.log('Starting download...', { url: youtubeUrl, format: selectedFormat });
+
             const response = await fetch(`${API_URL}/api/download`, {
                 method: 'POST',
                 headers: {
@@ -564,26 +571,35 @@
                 })
             });
 
+            console.log('Download response status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || 'Download failed');
+                throw new Error(errorData.error || `Download failed with status: ${response.status}`);
             }
 
-            // Get the blob and download
+            // Get the blob and create download
             const blob = await response.blob();
+            console.log('Blob size:', blob.size);
+            
+            if (blob.size === 0) {
+                throw new Error('Downloaded file is empty');
+            }
+
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = downloadUrl;
-            a.download = `${currentVideoInfo.title}.${selectedFormat === 'mp3' ? 'mp3' : 'mp4'}`;
+            a.download = `${currentVideoInfo.title.replace(/[^\w\s]/gi, '')}.${selectedFormat === 'mp3' ? 'mp3' : 'mp4'}`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(downloadUrl);
             
-            alert('Download completed successfully!');
+            alert('🎉 Download completed successfully! Check your downloads folder.');
+            
         } catch (error) {
             console.error('Download error:', error);
-            alert('Download failed: ' + error.message);
+            alert('❌ Download failed: ' + error.message + '\n\nTry a different video or format.');
         } finally {
             loadingSpinner.style.display = 'none';
             downloadBtn.disabled = false;
@@ -591,17 +607,26 @@
         }
     });
 
-    // Test backend connection on page load
+    // Test connection on page load
     window.addEventListener('load', async () => {
         try {
             const response = await fetch(`${API_URL}/api/health`);
             if (response.ok) {
-                console.log('Backend is connected!');
+                console.log('✅ Backend connection successful!');
             } else {
-                console.warn('Backend health check failed');
+                console.warn('❌ Backend health check failed');
             }
         } catch (error) {
-            console.error('Backend connection failed:', error);
+            console.error('❌ Backend connection failed:', error);
         }
     });
+
+    // Add Enter key support
+    urlInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            getInfoBtn.click();
+        }
+    });
+    </script>
+
 
