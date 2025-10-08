@@ -587,7 +587,78 @@
         </div>
     </footer>
 
-    <script>
+    <            downloadBtn.disabled = true;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
+
+            try {
+                console.log('Starting download...', youtubeUrl, selectedFormat);
+
+                const response = await fetch(`${API_URL}/api/download`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        url: youtubeUrl, 
+                        format: selectedFormat 
+                    })
+                });
+
+                console.log('Download response status:', response.status);
+
+                if (response.ok) {
+                    // Get the file as blob
+                    const blob = await response.blob();
+                    console.log('Downloaded blob size:', blob.size);
+                    
+                    if (blob.size > 0) {
+                        // Create download link
+                        const downloadUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = `youtube_video.${selectedFormat === 'mp3' ? 'mp3' : 'mp4'}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(downloadUrl);
+                        
+                        alert('🎉 Download completed! Check your downloads folder.');
+                    } else {
+                        throw new Error('Downloaded file is empty');
+                    }
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Download failed');
+                }
+            } catch (error) {
+                console.error('Download error:', error);
+                alert('❌ Download failed: ' + error.message + '\n\nPlease try:\n• A different YouTube video\n• Shorter video\n• Different format\n• Check your internet connection');
+            } finally {
+                loadingSpinner.style.display = 'none';
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Now';
+            }
+        });
+
+        // Helper function to extract video ID from YouTube URL
+        function extractVideoId(url) {
+            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[7].length === 11) ? match[7] : null;
+        }
+
+        // Enter key support
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                getInfoBtn.click();
+            }
+        });
+
+        // Test backend connection on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/health`);
+                if (response.ok) {script>
         // Backend API URL - POINTS TO YOUR WORKING BACKEND
         const API_URL = 'https://youtube-downloader-api.p.rapidapi.com'; // Free API
 
@@ -695,85 +766,50 @@
             }
 
             loadingSpinner.style.display = 'block';
-            downloadBtn.disabled = true;
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Downloading...';
 
-            try {
-                console.log('Starting download...', youtubeUrl, selectedFormat);
-
-                const response = await fetch(`${API_URL}/api/download`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        url: youtubeUrl, 
-                        format: selectedFormat 
-                    })
-                });
-
-                console.log('Download response status:', response.status);
-
-                if (response.ok) {
-                    // Get the file as blob
-                    const blob = await response.blob();
-                    console.log('Downloaded blob size:', blob.size);
-                    
-                    if (blob.size > 0) {
-                        // Create download link
-                        const downloadUrl = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = downloadUrl;
-                        a.download = `youtube_video.${selectedFormat === 'mp3' ? 'mp3' : 'mp4'}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(downloadUrl);
-                        
-                        alert('🎉 Download completed! Check your downloads folder.');
-                    } else {
-                        throw new Error('Downloaded file is empty');
-                    }
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Download failed');
-                }
-            } catch (error) {
-                console.error('Download error:', error);
-                alert('❌ Download failed: ' + error.message + '\n\nPlease try:\n• A different YouTube video\n• Shorter video\n• Different format\n• Check your internet connection');
-            } finally {
-                loadingSpinner.style.display = 'none';
-                downloadBtn.disabled = false;
-                downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Now';
-            }
-        });
-
-        // Helper function to extract video ID from YouTube URL
-        function extractVideoId(url) {
-            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[7].length === 11) ? match[7] : null;
-        }
-
-        // Enter key support
-        urlInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                getInfoBtn.click();
-            }
-        });
-
-        // Test backend connection on load
-        window.addEventListener('load', async () => {
-            try {
-                const response = await fetch(`${API_URL}/api/health`);
-                if (response.ok) {
                     console.log('✅ Backend connection successful!');
                 }
             } catch (error) {
                 console.log('Backend health check failed, but downloads may still work');
             }
         });
+    <script>
+    // Use external YouTube download service - NO BACKEND NEEDED
+    const downloadBtn = document.querySelector('.download-btn');
+    const urlInput = document.querySelector('.url-input');
+    const formatOptions = document.querySelectorAll('.format-option');
+
+    formatOptions.forEach(option => {
+        option.addEventListener('click', () => {
+            formatOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+        });
+    });
+
+    downloadBtn.addEventListener('click', () => {
+        const youtubeUrl = urlInput.value.trim();
+        
+        if (!youtubeUrl) {
+            alert('Please enter a YouTube URL');
+            return;
+        }
+
+        const selectedFormat = document.querySelector('.format-option.active').textContent;
+        
+        // Redirect to working download service
+        if (selectedFormat.includes('MP3')) {
+            window.open(`https://ytmp3.cc/en13/?v=${extractVideoId(youtubeUrl)}`, '_blank');
+        } else {
+            window.open(`https://ssyoutube.com/watch?v=${extractVideoId(youtubeUrl)}`, '_blank');
+        }
+        
+        alert('Opening download page...');
+    });
+
+    function extractVideoId(url) {
+        const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+        return match ? match[1] : '';
+    }
     </script>
-</body>
-    </html>
+
 
