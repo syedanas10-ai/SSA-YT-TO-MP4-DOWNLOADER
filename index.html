@@ -1,29 +1,139 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>SSA YT DOWNLOADER</title>
+    <title>SSA YT DOWNLOADER - Download YouTube Videos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .logo {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #f72585;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #4cc9f0;
+        }
+        .download-box {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+        }
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+        }
+        .download-btn {
+            padding: 15px 40px;
+            background: #4361ee;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .download-btn:hover {
+            background: #3a0ca3;
+        }
+        .features {
+            margin-top: 40px;
+        }
+        .feature {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+    </style>
 </head>
-<body style="background:black;color:white;text-align:center;padding:50px;">
-    <h1>SSA YT DOWNLOADER</h1>
-    <p>Paste YouTube URL and click download</p>
-    <input type="text" id="url" placeholder="YouTube URL" style="padding:10px;width:300px;">
-    <br><br>
-    <button onclick="startDownload()" style="padding:10px 20px;background:blue;color:white;">DOWNLOAD</button>
+<body>
+    <div class="container">
+        <div class="logo">
+            <i class="fas fa-download"></i> SSA YT DOWNLOADER
+        </div>
+        <h1>Download YouTube Videos in Seconds</h1>
+        <p>Fast, free, and easy to use!</p>
+        
+        <div class="download-box">
+            <input type="text" class="url-input" id="urlInput" placeholder="Paste YouTube URL here...">
+            <br>
+            <button class="download-btn" onclick="downloadVideo()">
+                <i class="fas fa-download"></i> DOWNLOAD NOW
+            </button>
+        </div>
 
+        <div class="features">
+            <div class="feature">
+                <h3><i class="fas fa-bolt"></i> Lightning Fast</h3>
+                <p>Download videos quickly</p>
+            </div>
+            <div class="feature">
+                <h3><i class="fas fa-shield-alt"></i> Safe & Secure</h3>
+                <p>Your privacy protected</p>
+            </div>
+            <div class="feature">
+                <h3><i class="fas fa-infinity"></i> Unlimited Downloads</h3>
+                <p>Download as many videos as you want</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
     <script>
-        function startDownload() {
-            var url = document.getElementById('url').value;
-            if(url.includes('youtube.com') || url.includes('youtu.be')) {
-                window.open('https://ssyoutube.com/watch?v=' + getVideoId(url), '_blank');
-                alert('Opening download page...');
+        function downloadVideo() {
+            const url = document.getElementById('urlInput').value.trim();
+            
+            if (!url) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
+
+            // Extract video ID
+            let videoId = '';
+            if (url.includes('youtube.com/watch?v=')) {
+                videoId = url.split('v=')[1].split('&')[0];
+            } else if (url.includes('youtu.be/')) {
+                videoId = url.split('youtu.be/')[1].split('?')[0];
+            }
+
+            if (videoId && videoId.length === 11) {
+                // Open working download service
+                window.open('https://ssyoutube.com/watch?v=' + videoId, '_blank');
+                alert('Download page opened! Your download will start shortly.');
             } else {
-                alert('Please enter a valid YouTube URL');
+                alert('Please enter a valid YouTube URL\nExample: https://www.youtube.com/watch?v=VIDEO_ID');
             }
         }
-        
-        function getVideoId(url) {
-            return url.split('v=')[1] || url.split('youtu.be/')[1];
-        }
+
+        // Enter key support
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                downloadVideo();
+            }
+        });
     </script>
 </body>
 </html>
