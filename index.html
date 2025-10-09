@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSA YT DOWNLOADER - Download YouTube Videos</title>
+    <title>SSA YT DOWNLOADER - Download Directly From Our Site</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -16,11 +16,11 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: white;
             min-height: 100vh;
-            padding: 20px;
         }
         .container {
             max-width: 800px;
             margin: 0 auto;
+            padding: 40px 20px;
             text-align: center;
         }
         .logo {
@@ -41,6 +41,7 @@
             padding: 30px;
             border-radius: 15px;
             margin: 30px 0;
+            backdrop-filter: blur(10px);
         }
         .url-input {
             width: 100%;
@@ -49,6 +50,7 @@
             border-radius: 10px;
             margin-bottom: 20px;
             font-size: 1rem;
+            background: rgba(255,255,255,0.9);
         }
         .format-buttons {
             display: flex;
@@ -84,16 +86,10 @@
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(67, 97, 238, 0.3);
         }
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 40px;
-        }
-        .feature {
-            background: rgba(255,255,255,0.05);
-            padding: 20px;
-            border-radius: 10px;
+        .loading {
+            display: none;
+            margin-top: 20px;
+            color: #4cc9f0;
         }
     </style>
 </head>
@@ -102,8 +98,8 @@
         <div class="logo">
             <i class="fas fa-download"></i> SSA YT DOWNLOADER
         </div>
-        <h1>Download YouTube Videos in Seconds</h1>
-        <p>Fast, free, and easy to use! No complicated setup required.</p>
+        <h1>Download YouTube Videos Directly</h1>
+        <p>No redirects - Download stays on our site!</p>
         
         <div class="download-box">
             <input type="text" class="url-input" id="urlInput" placeholder="Paste YouTube URL here...">
@@ -111,29 +107,18 @@
             <div class="format-buttons">
                 <button class="format-btn active" data-format="mp4">MP4 Video</button>
                 <button class="format-btn" data-format="mp3">MP3 Audio</button>
-                <button class="format-btn" data-format="720p">720p HD</button>
-                <button class="format-btn" data-format="1080p">1080p Full HD</button>
             </div>
             
             <button class="download-btn" onclick="startDownload()">
                 <i class="fas fa-download"></i> DOWNLOAD NOW
             </button>
-        </div>
-
-        <div class="features">
-            <div class="feature">
-                <h3><i class="fas fa-bolt"></i> Lightning Fast</h3>
-                <p>Download videos quickly with our optimized service</p>
-            </div>
-            <div class="feature">
-                <h3><i class="fas fa-shield-alt"></i> Safe & Secure</h3>
-                <p>Your privacy is protected. No data stored.</p>
-            </div>
-            <div class="feature">
-                <h3><i class="fas fa-infinity"></i> Unlimited Downloads</h3>
-                <p>Download as many videos as you want, completely free</p>
+            
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner fa-spin"></i> Downloading directly from our server...
             </div>
         </div>
+        
+        <p><strong>✅ Downloads happen on THIS domain - no redirects!</strong></p>
     </div>
 
     <script>
@@ -145,36 +130,38 @@
             });
         });
 
-        function startDownload() {
+        async function startDownload() {
             const url = document.getElementById('urlInput').value.trim();
             const format = document.querySelector('.format-btn.active').dataset.format;
+            const loading = document.getElementById('loading');
             
             if (!url) {
                 alert('Please enter a YouTube URL');
                 return;
             }
 
-            // Extract video ID
-            const videoId = extractVideoId(url);
-            if (!videoId) {
-                alert('Please enter a valid YouTube URL');
-                return;
-            }
+            // Show loading
+            loading.style.display = 'block';
 
-            // Redirect to WORKING download services
-            if (format === 'mp3') {
-                window.open(`https://ytmp3.cc/en13/?v=${videoId}`, '_blank');
-            } else {
-                window.open(`https://ssyoutube.com/watch?v=${videoId}`, '_blank');
+            try {
+                // Download directly from YOUR backend
+                const downloadUrl = `/download?url=${encodeURIComponent(url)}&format=${format}`;
+                
+                // Create invisible link and click it
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'true';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                loading.style.display = 'none';
+                alert('✅ Download started directly from our server!');
+                
+            } catch (error) {
+                loading.style.display = 'none';
+                alert('❌ Download failed. Please try again.');
             }
-            
-            alert('Opening download page... Your download will start shortly!');
-        }
-
-        function extractVideoId(url) {
-            const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-            const match = url.match(regExp);
-            return (match && match[7].length === 11) ? match[7] : null;
         }
 
         // Enter key support
