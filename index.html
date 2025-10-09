@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSA YT DOWNLOADER</title>
+</head>
+<body style="background:black;color:white;text-align:center;padding:50px;">
+    <h1>SSA YT DOWNLOADER</h1>
+    <p>Paste YouTube URL and click download</p>
+    <input type="text" id="url" placeholder="YouTube URL" style="padding:10px;width:300px;">
+    <br><br>
+    <button onclick="startDownload()" style="padding:10px 20px;background:blue;color:white;">DOWNLOAD</button>
+
+    <script>
+        function startDownload() {
+            var url = document.getElementById('url').value;
+            if(url.includes('youtube.com') || url.includes('youtu.be')) {
+                window.open('https://ssyoutube.com/watch?v=' + getVideoId(url), '_blank');
+                alert('Opening download page...');
+            } else {
+                alert('Please enter a valid YouTube URL');
+            }
+        }
+        
+        function getVideoId(url) {
+            return url.split('v=')[1] || url.split('youtu.be/')[1];
+        }
+    </script>
+</body>
+</html>
