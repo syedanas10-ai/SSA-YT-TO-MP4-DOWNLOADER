@@ -1,79 +1,31 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSA YT DOWNLOADER - Download YouTube Videos</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>SSA YT DOWNLOADER</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-        body { background: #1a1a2e; color: white; min-height: 100vh; padding: 20px; }
-        .container { max-width: 800px; margin: 0 auto; text-align: center; }
-        .logo { font-size: 2.5rem; margin-bottom: 10px; color: #f72585; }
-        h1 { font-size: 2.5rem; margin-bottom: 20px; color: #4cc9f0; }
-        .download-box { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; margin: 30px 0; }
-        .url-input { width: 100%; padding: 15px; border: none; border-radius: 10px; margin-bottom: 20px; font-size: 1rem; }
-        .format-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
-        .format-btn { padding: 12px 25px; background: rgba(255,255,255,0.2); border: none; border-radius: 8px; color: white; cursor: pointer; }
-        .format-btn.active { background: #4361ee; }
-        .download-btn { padding: 15px 40px; background: #4361ee; border: none; border-radius: 10px; color: white; font-size: 1.1rem; cursor: pointer; }
-        .download-btn:hover { background: #3a0ca3; }
+        body { background: #1a1a2e; color: white; text-align: center; padding: 50px; font-family: Arial; }
+        input { padding: 15px; width: 300px; margin: 10px; }
+        button { padding: 15px 30px; background: #4361ee; color: white; border: none; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo"><i class="fas fa-download"></i> SSA YT DOWNLOADER</div>
-        <h1>Download YouTube Videos</h1>
-        <p>Fast, free, and easy to use!</p>
-        
-        <div class="download-box">
-            <input type="text" class="url-input" id="urlInput" placeholder="Paste YouTube URL here...">
-            
-            <div class="format-buttons">
-                <button class="format-btn active" data-format="mp4">MP4 Video</button>
-                <button class="format-btn" data-format="mp3">MP3 Audio</button>
-            </div>
-            
-            <button class="download-btn" onclick="downloadVideo()">
-                <i class="fas fa-download"></i> DOWNLOAD NOW
-            </button>
-        </div>
-    </div>
+    <h1>SSA YT DOWNLOADER</h1>
+    <p>Paste YouTube URL and download</p>
+    <input type="text" id="url" placeholder="YouTube URL">
+    <br>
+    <button onclick="download()">DOWNLOAD MP4</button>
 
     <script>
-        document.querySelectorAll('.format-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-            });
-        });
-
-        function downloadVideo() {
-            const url = document.getElementById('urlInput').value.trim();
-            const format = document.querySelector('.format-btn.active').dataset.format;
-            
-            if (!url) {
-                alert('Please enter a YouTube URL');
-                return;
-            }
-
-            const videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-            
-            if (videoId && videoId[1]) {
-                if (format === 'mp3') {
-                    window.open(`https://ytmp3.cc/en13/?v=${videoId[1]}`, '_blank');
-                } else {
-                    window.open(`https://ssyoutube.com/watch?v=${videoId[1]}`, '_blank');
-                }
-                alert('Download page opened! Your download will start shortly.');
+        function download() {
+            var url = document.getElementById('url').value;
+            var videoId = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+            if (videoId) {
+                window.open('https://ssyoutube.com/watch?v=' + videoId[1], '_blank');
+                alert('Download started in new tab!');
             } else {
-                alert('Please enter a valid YouTube URL');
+                alert('Invalid YouTube URL');
             }
         }
-
-        document.getElementById('urlInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') downloadVideo();
-        });
     </script>
 </body>
 </html>
